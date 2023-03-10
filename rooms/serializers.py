@@ -5,6 +5,8 @@ from categories.serializers import CategorySerializer
 from reviews.serializers import ReviewSerializer
 from medias.serializers import PhotoSerializer
 
+from wishlists.models import Wishlist
+
 
 
 # class RoomSerializer(ModelSerializer):
@@ -28,6 +30,7 @@ class RoomDetailSerializer(serializers.ModelSerializer):
     # rating 값을 return하는 method를 만들 것임.
     rating = serializers.SerializerMethodField()
     is_owner = serializers.SerializerMethodField() # 인스타그램에서 is_liked(좋아요)로 사용, 값에 따라 빨간 하트, 빈 하트
+    is_liked = serializers.SerializerMethodField()
 
     # reviews = ReviewSerializer(many=True, read_only=True)
     photos = PhotoSerializer(many=True, read_only=True)
@@ -45,6 +48,13 @@ class RoomDetailSerializer(serializers.ModelSerializer):
     def get_is_owner(self, room):
         request = self.context['request'] # context= 를 통해 넘어온 데이터 사용
         return room.owner == request.user
+
+    def get_is_liked(self, room):
+        request = self.context['request']
+        # 해당 user가 만든 wishlist에 room.pk와 동일한 room들을 찾음
+        return Wishlist.objects.filter(user=request.user, rooms__pk=room.pk).exists() # wishlist와 room은 ManyToMany 관계
+        # return Wishlist.objects.filter(user=request.user, rooms__name=room.name).exists() # 이름으로 찾기도 가능
+
 
 class RoomListSerializer(serializers.ModelSerializer): # 방에 대한 작은 정보들만 줌
 
