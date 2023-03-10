@@ -3,6 +3,7 @@ from .models import Amenity, Room
 from users.serializer import TinyUserSerializer
 from categories.serializers import CategorySerializer
 from reviews.serializers import ReviewSerializer
+from medias.serializers import PhotoSerializer
 
 
 
@@ -27,7 +28,9 @@ class RoomDetailSerializer(serializers.ModelSerializer):
     # rating 값을 return하는 method를 만들 것임.
     rating = serializers.SerializerMethodField()
     is_owner = serializers.SerializerMethodField() # 인스타그램에서 is_liked(좋아요)로 사용, 값에 따라 빨간 하트, 빈 하트
+
     # reviews = ReviewSerializer(many=True, read_only=True)
+    photos = PhotoSerializer(many=True, read_only=True)
 
 
     class Meta:
@@ -43,10 +46,12 @@ class RoomDetailSerializer(serializers.ModelSerializer):
         request = self.context['request'] # context= 를 통해 넘어온 데이터 사용
         return room.owner == request.user
 
-class RoomListSerializer(serializers.ModelSerializer):
+class RoomListSerializer(serializers.ModelSerializer): # 방에 대한 작은 정보들만 줌
 
     rating = serializers.SerializerMethodField()
     is_owner = serializers.SerializerMethodField()
+    photos = PhotoSerializer(many=True, read_only=True)
+
     class Meta:
         model = Room
         fields = (
@@ -57,10 +62,11 @@ class RoomListSerializer(serializers.ModelSerializer):
             "price",
             "rating",
             "is_owner",
+            "photos",
         )
     def get_rating(self, room):
         return room.rating()
 
     def get_is_owner(self, room):
-        request = self.context['request']  # context= 를 통해 넘어온 데이터 사용
+        request = self.context["request"]  # context= 를 통해 넘어온 데이터 사용
         return room.owner == request.user
