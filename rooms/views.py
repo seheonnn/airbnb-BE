@@ -1,6 +1,24 @@
-from django.shortcuts import render
+import datetime
 
+from django.conf import settings
+from django.db import transaction
+from django.utils import timezone
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.exceptions import NotFound, NotAuthenticated, ParseError, PermissionDenied
+from rest_framework.status import HTTP_204_NO_CONTENT
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+# IsAutheticatedOrReadOnly는 만약 요청이 GET이라면 누구나 통과할 수 있게 해줌. 하지만 만약 요청이 POST, PUT, DELETE라면 오직 인증받는 사람들만 통과할 수 있음.
+
+from categories.models import Category
+from .models import Amenity
+from .serializers import AmenitySerializer, RoomListSerializer, RoomDetailSerializer
+from reviews.serializers import ReviewSerializer
+from medias.serializers import PhotoSerializer
 from .models import Room
+from bookings.models import Booking
+from bookings.serializers import PublicBookingSerializer, CreateRoomBookingSerializer
 
 # def see_all_rooms(request):
 #     rooms = Room.objects.all()
@@ -13,20 +31,6 @@ from .models import Room
 #         return render(request,"room_detail.html",{"room": room,},)
 #     except Room.DoesNotExist:
 #         return render(request,"room_detail.html",{"not_found":True,},)
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.exceptions import NotFound, NotAuthenticated, ParseError, PermissionDenied
-from rest_framework.status import HTTP_204_NO_CONTENT
-
-from categories.models import Category
-
-from .models import Amenity
-from .serializers import AmenitySerializer, RoomListSerializer, RoomDetailSerializer
-
-from django.db import transaction
-
-from django.conf import settings
 
 # api/v1/rooms/amenities
 class Amenities(APIView):
@@ -68,8 +72,7 @@ class AmenityDetail(APIView):
         amenity.delete()
         return Response(status=HTTP_204_NO_CONTENT)
 
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
-# IsAutheticatedOrReadOnly는 만약 요청이 GET이라면 누구나 통과할 수 있게 해줌. 하지만 만약 요청이 POST, PUT, DELETE라면 오직 인증받는 사람들만 통과할 수 있음.
+# api/v1/rooms/
 class Rooms(APIView):
 
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -107,7 +110,7 @@ class Rooms(APIView):
         # else:
         #     raise NotAuthenticated
 
-
+# api/v1/rooms/1
 class RoomDetail(APIView):
 
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -169,7 +172,7 @@ class RoomDetail(APIView):
         room.delete()
         return Response(status=HTTP_204_NO_CONTENT)
 
-from reviews.serializers import ReviewSerializer
+# api/v1/rooms/1/reviews
 class RoomReviews(APIView):
 
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -204,7 +207,7 @@ class RoomReviews(APIView):
             return Response(serializer.data)
 
 
-
+# api/v1/rooms/1/amenities
 class RoomAmenities(APIView):
     def get_object(self, pk):
         try:
@@ -224,8 +227,7 @@ class RoomAmenities(APIView):
         serializer = AmenitySerializer(room.amenities.all()[start:end], many=True,)
         return Response(serializer.data)
 
-from medias.serializers import PhotoSerializer
-
+# api/v1/rooms/1/photos
 class RoomPhotos(APIView):
 
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -249,3 +251,81 @@ class RoomPhotos(APIView):
             return Response(serializer.data)
         else:
             return Response(serializer.errors)
+
+# api/v1/rooms/1/bookings
+class RoomBookings(APIView):
+
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_object(self, pk):
+        try:
+            return Room.objects.get(pk=pk)
+        except Room.DoesNotExist:
+            raise NotFound
+
+    # def get(self, request, pk):
+    #     room = self.get_object(pk)
+    #     now = timezone.localtime(timezone.now()).date()
+    #     bookings = Booking.objects.filter(room=room, kind=Booking.BookingKindChoices.ROOM, check_in__gt=now, )
+    #     # 방식 2 해당 room의 pk를 받아 오기 때문에 room__pk로 booking을 찾음
+    #     # but, room 자체가 없는 경우, booking이 불가한 경우 똑같이 걀과로 빈 list 나옴
+    #     # bookings = Booking.objects.filter(room__pk=pk, kind=Booking.BookingKindChoices.ROOM)
+    #     serializer = PublicBookingSerializer(bookings, many=True)
+    #     return Response(serializer.data)
+
+    # pagination 적용
+    def get(self, request, pk):
+        room = self.get_object(pk)
+        now = timezone.localtime(timezone.now()).date()
+
+        try:
+            year = int(request.query_params.get("year", now.year))
+            month = int(request.query_params.get("month"), now.month)
+            if year < now.year: # 쿼리로 받은 연도가 현재 연도보다 작으면
+                year = now.year
+                month = now.month
+            elif (year == now.year) and (month < now.month):
+                month = now.month
+        except:
+            year = now.year
+            month = now.month
+
+        date_start = datetime.date(year, month, 1)
+        date_end = datetime.date(year, month + 1, 1)
+        bookings = Booking.objects.filter(
+            room=room,
+            kind=Booking.BookingKindChoices.ROOM,
+            check_in__gt=date_start,
+            check_in__lt=date_end,
+        )
+        serializer = PublicBookingSerializer(bookings, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, pk):
+        room = self.get_object(pk)
+        serializer = CreateRoomBookingSerializer(data=request.data, context={"room":room})
+        if serializer.is_valid():
+            # check_in = request.data.get('check_in') # 불러 와서 미래 날짜인지 확인하는 로직으로 짜도 됨
+            booking = serializer.save(
+                room=room,
+                user=request.user,
+                kind=Booking.BookingKindChoices.ROOM,
+            ) # CreateRoomBookingSerializer로 .save()했기 때문에 추가 필드들이 필요함.
+            serializer = PublicBookingSerializer(booking)
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors)
+
+class RoomBookingDelete(APIView):
+    def get_object(self, booking_pk):
+        try:
+            return Booking.objects.get(pk=booking_pk)
+        except Booking.DoesNotExist:
+            raise NotFound
+    def delete(self, request, pk, booking_pk):
+        room = Room.objects.get(pk=pk)
+        booking = self.get_object(booking_pk)
+        if booking.user != request.user and booking.room == room:
+            raise PermissionDenied
+        booking.delete()
+        return Response(status=HTTP_204_NO_CONTENT)

@@ -12,3 +12,10 @@
 "amenities": [11111,2,3,4],
 "kind": "private_room"
 }
+
+
+{
+"guests":2,
+"check_in":"2023-03-10",
+"check_out":"2023-03-15"
+}
