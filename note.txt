@@ -19,3 +19,14 @@
 "check_in":"2023-03-10",
 "check_out":"2023-03-15"
 }
+
+
+{
+"username":"password-test",
+"email":"ho78901@naver.com",
+"name":"seheonnn",
+"gender":"male",
+"language":"kr",
+"currency":"won",
+"password":"123456"
+}

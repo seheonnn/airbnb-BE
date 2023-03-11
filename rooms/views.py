@@ -14,7 +14,9 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from categories.models import Category
 from .models import Amenity
 from .serializers import AmenitySerializer, RoomListSerializer, RoomDetailSerializer
-from reviews.serializers import ReviewSerializer
+
+from reviews import serializers as review_serializer
+
 from medias.serializers import PhotoSerializer
 from .models import Room
 from bookings.models import Booking
@@ -193,17 +195,17 @@ class RoomReviews(APIView):
         start = (page - 1) * page_size
         end = start + page_size
         room = self.get_object(pk)
-        serializer = ReviewSerializer(
+        serializer = review_serializer.ReviewSerializer(
             room.reviews.all()[start:end], # start에서 end-1까지만 반환
             many=True,
         )
         return Response(serializer.data)
 
     def post(self, request, pk):
-        serializer = ReviewSerializer(data=request.data)
+        serializer = review_serializer.ReviewSerializer(data=request.data)
         if serializer.is_valid():
             review = serializer.save(user=request.user, room=self.get_object(pk)) # 사용자에게 user 정보와 room 정보는 따로 받아오지 않음
-            serializer = ReviewSerializer(review)
+            serializer = review_serializer.ReviewSerializer(review)
             return Response(serializer.data)
 
 
@@ -316,6 +318,7 @@ class RoomBookings(APIView):
         else:
             return Response(serializer.errors)
 
+# api/v1/rooms/1/bookings/1
 class RoomBookingDelete(APIView):
     def get_object(self, booking_pk):
         try:
