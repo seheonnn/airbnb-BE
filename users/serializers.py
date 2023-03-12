@@ -1,8 +1,10 @@
-from rest_framework.serializers import ModelSerializer
+from rest_framework import serializers
+
 from .models import User
 
 # room 정보를 볼 때 간단하게 보여줄 user 정보
-class TinyUserSerializer(ModelSerializer):
+class TinyUserSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = User
         fields = (
@@ -12,7 +14,11 @@ class TinyUserSerializer(ModelSerializer):
         )
 
 # 자신의 private한 정보
-class PrivateUserSerializer(ModelSerializer):
+class PrivateUserSerializer(serializers.ModelSerializer):
+
+    total_rooms = serializers.SerializerMethodField()
+    total_reviews = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         exclude = (
@@ -26,3 +32,7 @@ class PrivateUserSerializer(ModelSerializer):
             "groups",
             "user_permissions",
         )
+    def get_total_rooms(self, user):
+        return user.total_rooms()
+    def get_total_reviews(self, user):
+        return user.total_reviews()

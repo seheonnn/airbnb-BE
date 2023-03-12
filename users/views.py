@@ -6,6 +6,10 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ParseError, NotFound
 
+from rooms.models import Room
+from rooms.serializers import RoomListSerializer
+from reviews.models import Review
+from reviews.serializers import UserReviewSerializer
 from . import serializers
 from .models import User
 
@@ -98,3 +102,24 @@ class LogOut(APIView):
     def post(self, request):
         logout(request)
         return Response({'pk': 'bye!'})
+
+
+# api/v1/users/@seheon/rooms
+class ShowRooms(APIView):
+    def get(self, request, username):
+        rooms = Room.objects.filter(owner__username=username)
+        if rooms:
+            serializer = RoomListSerializer(rooms, many=True, context={'request': request})
+            return Response(serializer.data)
+        else:
+            raise ParseError(f"{username} does not have any rooms.")
+
+# api/v1/users/@seheon/reviews
+class ShowReviews(APIView):
+    def get(self, request, username):
+        reviews = Review.objects.filter(user__username=username)
+        if reviews:
+            serializer = UserReviewSerializer(reviews, many=True)
+            return Response(serializer.data)
+        else:
+            raise ParseError(f"{username} does not have any reviews.")

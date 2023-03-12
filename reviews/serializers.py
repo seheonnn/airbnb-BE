@@ -7,3 +7,15 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ("user", "payload", "rating")
+
+
+class UserReviewSerializer(serializers.ModelSerializer):
+
+    room_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Review
+        fields = ("room_name", "payload", "rating")
+
+    def get_room_name(self, review):
+        return review.room.name

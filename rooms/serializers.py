@@ -80,3 +80,4 @@ class RoomListSerializer(serializers.ModelSerializer): # 방에 대한 작은 �
     def get_is_owner(self, room):
         request = self.context["request"]  # context= 를 통해 넘어온 데이터 사용
         return room.owner == request.user
+

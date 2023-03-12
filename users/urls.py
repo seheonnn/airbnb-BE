@@ -10,4 +10,8 @@ urlpatterns = [
     path("log-in", views.LogIn.as_view()),
     path("log-out", views.LogOut.as_view()),
     path("@<str:username>", views.PublicUser.as_view()), # me 아래로 내리면 제대로 작동, me라는 user가 있을 수 있기 때문에 @ 추가
+
+    path("@<str:username>/rooms", views.ShowRooms.as_view()),
+    path("@<str:username>/reviews", views.ShowReviews.as_view()),
+
 ]

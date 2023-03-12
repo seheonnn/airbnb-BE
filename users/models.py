@@ -48,4 +48,11 @@ class User(AbstractUser):
         max_length=5,
         choices=CurrencyChoices.choices,
     )
+
+    def total_rooms(self):
+        return self.rooms.count()
+
+    def total_reviews(self):
+        return self.reviews.count()
+
 # Create your models here.
