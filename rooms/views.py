@@ -282,7 +282,7 @@ class RoomBookings(APIView):
 
         try:
             year = int(request.query_params.get("year", now.year))
-            month = int(request.query_params.get("month"), now.month)
+            month = int(request.query_params.get("month", now.month))
             if year < now.year: # 쿼리로 받은 연도가 현재 연도보다 작으면
                 year = now.year
                 month = now.month
@@ -295,7 +295,7 @@ class RoomBookings(APIView):
         date_start = datetime.date(year, month, 1)
         date_end = datetime.date(year, month + 1, 1)
         bookings = Booking.objects.filter(
-            room=room,
+            room=room, # room으로 booking을 찾으므로 room 자체가 없는 경우인지, booking이 불가능한 경우인지 분리 가능
             kind=Booking.BookingKindChoices.ROOM,
             check_in__gt=date_start,
             check_in__lt=date_end,

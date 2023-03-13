@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
 from rest_framework.status import HTTP_204_NO_CONTENT
 from rest_framework.views import APIView
@@ -9,6 +10,9 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from categories.models import Category
 from reviews.serializers import ReviewSerializer
+from bookings.models import Booking
+from bookings.serializers import PublicBookingSerializer
+from bookings.serializers import CreateExperienceBookingSerializer
 from .models import Perk, Experience
 from .serializers import PerkSerializer, ExperienceListSerializer, ExperienceDetailSerializer
 
@@ -191,3 +195,40 @@ class ExperiencePerks(APIView):
         experience = self.get_object(pk)
         serializer = PerkSerializer(experience.perks.all()[start:end], many=True)
         return Response(serializer.data)
+
+# api/v1/experiences/1/bookings
+class ExperienceBookings(APIView):
+
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_object(self, pk):
+        try:
+            return Experience.objects.get(pk=pk)
+        except Experience.DoesNotExist:
+            raise NotFound
+
+    def get(self, request, pk):
+        experience = self.get_object(pk)
+        now = timezone.localtime(timezone.now())
+        # print(now)
+        bookings = Booking.objects.filter(
+            experience=experience,
+            kind=Booking.BookingKindChoices.EXPERIENCE,
+            experience_time__gte=now,
+        )
+        serializer = PublicBookingSerializer(bookings, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, pk):
+        experience = self.get_object(pk)
+        serializer = CreateExperienceBookingSerializer(data=request.data, context={"experience":experience})
+        if serializer.is_valid():
+            booking =serializer.save(
+                experience=experience,
+                user=request.user,
+                kind=Booking.BookingKindChoices.EXPERIENCE,
+            )
+            serializer = PublicBookingSerializer(booking)
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors)
