@@ -32,7 +32,24 @@ class ExperienceDetailSerializer(ModelSerializer):
 
     class Meta:
         model = Experience
-        fields = "__all__"
+        fields = (
+            "id",
+            "host",
+            "category",
+            "perks",
+            "reviews",
+            "rating",
+            "is_owner",
+            "is_liked",
+            "country",
+            "city",
+            "name",
+            "price",
+            "address",
+            "start",
+            "end",
+            "description"
+        )
 
     def get_rating(self, experience):
         return experience.rating()

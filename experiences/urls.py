@@ -7,4 +7,5 @@ urlpatterns = [
 
     path("", views.Experiences.as_view()),
     path("<int:pk>", views.ExperiencesDetail.as_view()),
+    path("<int:pk>/reviews", views.ExperienceReviews.as_view()),
 ]
