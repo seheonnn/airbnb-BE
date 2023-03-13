@@ -173,3 +173,21 @@ class ExperienceReviews(APIView):
             return Response(serializer.data)
 
 # api/v1/experiences/1/perks
+class ExperiencePerks(APIView):
+    def get_object(self, pk):
+        try:
+            return Experience.objects.get(pk=pk)
+        except Experience.DoesNotExist:
+            return NotFound
+    def get(self, request, pk):
+        try:
+            page = request.query_params.get('page', 1)
+            page = int(page)
+        except ValueError:
+            page = 1
+        page_size = settings.PAGE_SIZE
+        start = (page - 1) * page_size
+        end = start + page_size
+        experience = self.get_object(pk)
+        serializer = PerkSerializer(experience.perks.all()[start:end], many=True)
+        return Response(serializer.data)
